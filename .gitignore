@@ -1,3 +1,4 @@
+*.deb
 flair*/
 
 # Byte-compiled / optimized / DLL files
