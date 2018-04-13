@@ -2,42 +2,26 @@ import re
 import os
 import subprocess
 import shutil
-import tempfile
+from tempfile import TemporaryDirectory
 import logging
 
 from patoolib import extract_archive
 
 
+
+class UnknownRelocTypeError(Exception):
+   pass
+
 class Flair():
     dir_names = {}
     logger = None
+    MESSAGES = {'reloc':'Unknown relocation type'}
 
     def __init__(self, flair='flair'):
         self.dir_names = {'temp' : 'temp', 
                          'flair' : flair}
         self.logger = logging.getLogger('Flair')
         self.logger.setLevel(logging.WARNING)
-
-    def get(self):
-        #url = 'http://ftp.ubuntu.com/ubuntu/pool/main/e/eglibc/'
-        url = 'http://turul.canonical.com/pool/main/g/glibc/'
-        res = requests.get(url)
-        s = res.content.decode() 
-        #open('g.html','w').write(s)
-        
-        #s = open('e.html','r').read()
-        debs = re.findall(r'"([\w\-\._]+\.deb)"',s)
-        packages = []
-        #r = re.compile(r'"(.+?)_(.+?)_(.+?)\.deb"')
-        r = re.compile(r'"(?P<name>[\w-]+)_(?P<version>[\d.-]+)-(?P<os>[\w.]+)_(?P<arch>[\w\-_]+).deb"')
-        m = r.match('"{}"'.format(debs[0]))
-        #map(lambda deb: packages.append(r.findall(deb)), debs)
-        archs = []
-        for m in r.finditer(s):
-            packages.append(m.groupdict())
-        #list(map(lambda x: archs.append(x['arch']), packages))
-        #print(set(archs))
-
     
     def __clean_exc(self, exc_name):
         with open(exc_name, 'r') as f:
@@ -60,7 +44,9 @@ class Flair():
         return True
 
     def make_sig(self, lib_name, sig_name, sig_desc='', is_compress=True):
-        
+        if os.path.exists(sig_name):
+            raise FileExistsError
+
         lib, ext = os.path.splitext(lib_name)
         pat = lib + '.pat'
         sig_base, ext = os.path.splitext(sig_name)
@@ -77,8 +63,10 @@ class Flair():
         flair_dir = self.dir_names['flair']
         pelf = os.path.join(flair_dir, 'pelf')
         args = [pelf, lib_name, pat]
-        subprocess.call(args, stderr=subprocess.DEVNULL)
-        
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
+        if self.MESSAGES['reloc'].encode() in err:
+            raise 'pelf: this architecture is not supported'
         if not os.path.exists(pat):
             raise 'pelf: Error'
 
@@ -114,36 +102,40 @@ class Flair():
         return True
 
     def __extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a
-        temp = tempfile.mkdtemp()
-        self.__extract_deb(deb_name, temp)
-    
-        usr = os.path.join(temp, 'usr')
-        lib_name = ''
-        for deb_dir in os.listdir(usr):
-            if deb_dir.startswith('lib'):
-                lib_name = deb_dir
-                break
-        if not lib_name:
-            raise 'deb: Package Error'
-        
-        lib = os.path.join(usr, lib_name)
-        a = os.path.join(lib, a_name)
-        if not os.path.exists(a):
-            platforms = os.listdir(lib)
-            if len(platforms) >= 1:
-                if len(platforms) == 1:
-                    self.logger.warning('warning: multi platforms found')
-                a = os.path.join(lib, platforms[0], a_name)
-            else:
-                raise 'deb: Platform not found'
-        
-        os.rename(a, out_name)
-        shutil.rmtree(temp)
+        with TemporaryDirectory() as temp:
+            self.__extract_deb(deb_name, temp)
+            if os.path.exists(a_name):
+                raise FileExistsError
+            usr = os.path.join(temp, 'usr')
+            lib_name = ''
+            for deb_dir in os.listdir(usr):
+                if deb_dir.startswith('lib'):
+                    lib_name = deb_dir
+                    break
+            if not lib_name:
+                raise 'deb: Package Error'
+            
+            lib = os.path.join(usr, lib_name)
+            a = os.path.join(lib, a_name)
+            if not os.path.exists(a):
+                platforms = os.listdir(lib)
+                if len(platforms) >= 1:
+                    if len(platforms) == 1:
+                        self.logger.warning('warning: multi platforms found')
+                    a = os.path.join(lib, platforms[0], a_name)
+                else:
+                    raise 'deb: Platform not found'
+            os.rename(a, out_name)
         return True
 
-    def deb_to_sig(self, deb_name, a_name, sig_name, sig_desc=''):
-        temp = tempfile.mkdtemp()
-        a = os.path.join(temp, a_name)
-        self.__extract_a(deb_name, a_name, a)
-        self.make_sig(a, sig_name, sig_desc=sig_desc)  
-        shutil.rmtree(temp)      
+    def deb_to_sig(self, deb_name, a_name, sig_name='', sig_desc=''):
+        with TemporaryDirectory() as temp:
+            a = os.path.join(temp, a_name)
+            if not sig_name:
+                sig_name = '{}.sig'.format(os.path.splitext(deb_name)[0])
+            if os.path.exists(a_name):
+                raise FileExistsError
+            
+            self.__extract_a(deb_name, a_name, a)
+            self.make_sig(a, sig_name, sig_desc=sig_desc)  
+        

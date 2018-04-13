@@ -1,4 +1,5 @@
 *.deb
+*.sig
 flair*/
 
 # Byte-compiled / optimized / DLL files
