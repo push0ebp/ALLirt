@@ -1,3 +1,4 @@
+import sys
 import os
 from datetime import datetime
 import logging
@@ -28,13 +29,18 @@ class Allirt():
         formatter = logging.Formatter('[%(levelname)s] %(message)s')
         stream_handler.setFormatter(formatter)
         self.logger.addHandler(stream_handler)
-
-    def download(self, out_dir):
+    
+    def download_all(self, out_dir=''):
+        return self.download(out_dir)
+    
+    def download(self, out_dir='', start=0, end=0):
         os_name = self.os_name
         package_name = self.package_name
         self.logger.info('OS : ' + os_name)
         self.logger.info('Package : ' + package_name)
         series_list = self.archive.get_os_series(os_name)
+        if start or end:
+            series_list = series_list[start:end]
         print()
         os_dir_name = os.path.join(out_dir, os_name)
         not os.path.exists(os_dir_name) and os.mkdir(os_dir_name)
@@ -86,19 +92,31 @@ class Allirt():
                         else:
                             self.logger.warning('Package deleted')
 
-allirt = Allirt('ubuntu', 'libc6-dev')
-allirt.download('.')
-#db.get()
-#db.extract_a('/Users/push0ebp/Downloads/deb/libc6-dev_2.15-0ubuntu10.18_i386.deb', 'libc.a', './libc.a')
-#allirt.flair.make_sig('temp/libc.a', 'temp/libc2.sig', 'Ubuntu 12.04')
-#db.deb_to_sig('/Users/push0ebp/Downloads/deb/libc6-dev_2.15-0ubuntu10.18_i386.deb', 'libc.a', 'libc.sig', 'Ubuntu 12.04')
-#versions = db.get_pacakge_versions('ubuntu','precise','amd64','libc6-dev')
-#db.download_package('ubuntu','precise','amd64','libc6-dev',versions[1])
-#series = db.launchpad.get_os_series('ubuntu')
-
-#db.launchpad.get_os_architectures('ubuntu', series[-1][0])
+        self.logger.info('Finished')
+        return True
 
 
 
 
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print('Usage : python3 alirt.py <out_dir> <start> <end>')
+        exit()
+    
+    
+    try:
+        out_dir = sys.argv[1]
+    except:
+        out_dir = '.'
+    try:
+        start = int(sys.argv[2])
+    except:
+        start = 0
 
+    try:
+        end = int(sys.argv[3])
+    except:
+        end = 0
+
+    allirt = Allirt('ubuntu', 'libc6-dev')
+    allirt.download(out_dir, start, end)
