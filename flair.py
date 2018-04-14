@@ -9,14 +9,14 @@ from patoolib import extract_archive
 
 
 
-class UnknownRelocTypeError(Exception):
-   pass
 
 class Flair():
     dir_names = {}
     logger = None
-    MESSAGES = {'reloc':'Unknown relocation type'}
-
+    MESSAGES = {'reloc': 'Unknown relocation type',
+                'processor': 'Unknown processor type',}
+    FILE_NAMES = {'data':'data.tar',
+                  'data_gz': 'data.tar.gz'}
     def __init__(self, flair='flair'):
         self.dir_names = {'temp' : 'temp', 
                          'flair' : flair}
@@ -66,9 +66,21 @@ class Flair():
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         if self.MESSAGES['reloc'].encode() in err:
-            raise 'pelf: this architecture is not supported'
-        if not os.path.exists(pat):
-            raise 'pelf: Error'
+            #thanks to hstocks
+            self.logger.warning(self.MESSAGES['reloc'])
+            reloc_type = err.decode().split('type ')[1].split(' (offset')[0]
+            args = [pelf, lib_name, '-r{}:0:0'.format(reloc_type), pat]
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = process.communicate()
+            if self.MESSAGES['reloc'].encode() in err:                
+                raise 'pelf: this architecture is not supported'
+        
+        
+        if self.MESSAGES['processor'].encode() in err:
+            raise 'pelf: this processor is not supported'
+        
+        if not os.path.getsize(pat):
+            raise 'pelf: Error {}'.format(err)
 
         sigmake = os.path.join(flair_dir, 'sigmake')
         args = [sigmake]
@@ -97,7 +109,12 @@ class Flair():
 
     def __extract_deb(self, deb_name, out_name):
         extract_archive(deb_name, outdir=out_name, verbosity=-1)
-        data = os.path.join(out_name, 'data.tar')
+        data = os.path.join(out_name, self.FILE_NAMES['data'])
+        if not os.path.exists(data):
+            args = ['ar','x', deb_name, self.FILE_NAMES['data_gz']]
+            subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            data = os.path.join(out_name, self.FILE_NAMES['data_gz'])
+            os.rename(self.FILE_NAMES['data_gz'], data)
         extract_archive(data, outdir=out_name, verbosity=-1)
         return True
 
