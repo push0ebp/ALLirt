@@ -11,7 +11,6 @@ from patoolib import extract_archive
 class FlairNotSupportedError(Exception):
     pass
 
-
 class FlairError(Exception):
     pass
 
@@ -79,7 +78,7 @@ class Flair():
             self.logger.warning(self.MESSAGES['reloc'])
             reloc_type = err.decode().split('type ')[1].split(' (offset')[0]
             args = [pelf, lib_name, '-r{}:0:0'.format(reloc_type), pat]
-            process =   
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
             if self.MESSAGES['reloc'].encode() in err:                
                 raise FlairNotSupportedError('pelf: this architecture is not supported')
@@ -92,16 +91,16 @@ class Flair():
             raise FlairError('pelf: Error {}'.format(err,))
 
         sigmake = os.path.join(flair_dir, 'sigmake')
-        args = [sigmake]
         if sig_desc:
-            args.append('-n{}'.format(sig_desc))
-        args += [pat, sig]
+            args = [sigmake, '-n{}'.format(sig_desc), pat, sig]
+        else:
+            args = [sigmake, pat, sig]
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
         exit_code = process.wait()    
         if exit_code != 0 and os.path.exists(exc): #if it has collision
             self.__clean_exc(exc)
-            exit_code = subprocess.call(args, stderr=subprocess.DEVNULL)
+            exit_code = subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if exit_code != 0:
             raise FlairError('sigmake: Unknown Error')
 
@@ -146,9 +145,9 @@ class Flair():
             lib = os.path.join(usr, lib_name)
             a = os.path.join(lib, a_name)
             if not os.path.exists(a): #libc.a not exists in ./usr/lib
-                platforms = filter(lambda x: os.path.isdir(x), os.listdir(lib))
+                platforms = list(filter(lambda x: os.path.isdir(os.path.join(lib, x)), os.listdir(lib)))
                 if len(platforms) >= 1:
-                    if len(platforms) == 1:
+                    if len(platforms) != 1:
                         self.logger.warning('warning: multi platforms found')
                     a = os.path.join(lib, platforms[0], a_name)
                 else:
@@ -164,8 +163,10 @@ class Flair():
             if os.path.exists(sig_name):
                 raise FileExistsError
             
-            self.__extract_a(deb_name, a_name, a)
-            try:
-                self.make_sig(a, sig_name, sig_desc=sig_desc)  
-            finally:
-                os.remove(a)
+            a_lib_path = self.__extract_a(deb_name, a_name, a)
+            self.make_sig(a, sig_name, sig_desc=sig_desc)  
+            
+            info = {'a': a_lib_path, 
+                    'sig': sig_name}
+            
+            return info

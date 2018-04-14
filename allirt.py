@@ -15,7 +15,7 @@ class Allirt():
     package_name = ''
 
     logger = None
-    SKIPS = {'arch':[]}#'sparc', 'hppa'    ]}
+    SKIPS = {'arch':['sparc', 'hppa']}
     
     def __init__(self, os_name, package_name, flair='flair', log_level=logging.INFO):
         self.flair = Flair(flair)

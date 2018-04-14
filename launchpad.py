@@ -34,7 +34,7 @@ class Launchpad():
             filename = os.path.basename(download_url.replace('-dev',''))
             
         info = {'url' : download_url,
-                  'filename': filename}
+                'filename': filename}
         return info
 
     def download_package(self, os_name, os_series, arch, package, package_version, out_dir='.', filename=''):
