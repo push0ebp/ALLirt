@@ -153,7 +153,8 @@ class Flair():
                 else:
                     raise FlairError('deb: Platform not found')
             os.rename(a, out_name)
-        return a
+            a_lib_path = a.replace(temp, '.')
+        return a_lib_path
 
     def deb_to_sig(self, deb_name, a_name, sig_name='', sig_desc=''):
         with TemporaryDirectory() as temp:
