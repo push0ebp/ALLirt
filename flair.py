@@ -118,13 +118,16 @@ class Flair():
 
     def __extract_deb(self, deb_name, out_name):
         extract_archive(deb_name, outdir=out_name, verbosity=-1)
-        data = os.path.join(out_name, self.FILE_NAMES['data'])
-        if not os.path.exists(data):
-            args = ['ar','x', deb_name, self.FILE_NAMES['data_gz']]
-            subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            data = os.path.join(out_name, self.FILE_NAMES['data_gz'])
-            os.rename(self.FILE_NAMES['data_gz'], data)
-        extract_archive(data, outdir=out_name, verbosity=-1)
+        if not os.path.exists(os.path.join(out_name, 'usr')): #data.tar extracted
+            data = os.path.join(out_name, self.FILE_NAMES['data'])
+            extract_archive(data, outdir=out_name, verbosity=-1)
+            if not os.path.exists(data): #deb extract not working
+                args = ['ar','x', deb_name, self.FILE_NAMES['data_gz']]
+                subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                data = os.path.join(out_name, self.FILE_NAMES['data_gz'])
+                if not os.path.exists(self.FILE_NAMES['data_gz']):
+                    raise FlairError('deb: Extract error')
+                os.rename(self.FILE_NAMES['data_gz'], data)
         return True
 
     def __extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a

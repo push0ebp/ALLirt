@@ -73,7 +73,7 @@ class Allirt():
                                 deb_path = os.path.join(deb_tmp_path, filename)
                                 info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc)
                                 self.logger.info('Target library : {}'.format(info['a']))
-                                self.logger.info('Signature has created. -> {}'.format(info['sig']))
+                                self.logger.info('Signature has been generated. -> {}'.format(info['sig']))
                             except FileExistsError as e:
                                 self.logger.warning('Signature already exists.')
                             except (FlairError, FlairNotSupportedError) as e:
