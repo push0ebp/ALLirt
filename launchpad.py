@@ -20,7 +20,6 @@ class Launchpad():
 
     def get_download_info(self, os_name, os_series, arch, package, package_version):        
         package_info_url = '{}/{}/{}/{}/{}/{}'.format(self.ARCHIVE_HOST, os_name, os_series, arch, package, package_version)    
-        print(package_info_url)
         res = self.session.get(package_info_url)
         
         bs = BeautifulSoup(res.content, 'html.parser')
@@ -37,13 +36,13 @@ class Launchpad():
                   'filename': filename}
         return info
 
-    def download_package(self, os_name, os_series, arch, package, package_version, filename=''):
+    def download_package(self, os_name, os_series, arch, package, package_version, out_dir='.', filename=''):
         info = self.get_download_info(os_name, os_series, arch, package, package_version)
         if info['url']:
             if not filename:
                 filename = info['filename']
-
-            size = self.download_file(info['url'], filename)
+            out = os.path.join(out_dir, filename)
+            size = self.download_file(info['url'], out)
         else:
             size = 0
         info['size'] = size

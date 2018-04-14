@@ -8,7 +8,12 @@ import logging
 from patoolib import extract_archive
 
 
+class FlairNotSupportedError(Exception):
+    pass
 
+
+class FlairError(Exception):
+    pass
 
 class Flair():
     dir_names = {}
@@ -73,14 +78,14 @@ class Flair():
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
             if self.MESSAGES['reloc'].encode() in err:                
-                raise 'pelf: this architecture is not supported'
+                raise FlairNotSupportedError('pelf: this architecture is not supported')
         
         
         if self.MESSAGES['processor'].encode() in err:
-            raise 'pelf: this processor is not supported'
+            raise FlairNotSupportedError('pelf: this processor is not supported')
         
         if not os.path.getsize(pat):
-            raise 'pelf: Error {}'.format(err)
+            raise FlairError('pelf: Error {}'.format(err))
 
         sigmake = os.path.join(flair_dir, 'sigmake')
         args = [sigmake]
@@ -93,7 +98,7 @@ class Flair():
             self.__clean_exc(exc)
             exit_code = subprocess.call(args, stderr=subprocess.DEVNULL)
         if exit_code != 0:
-            raise 'sigmake: Unknown Error'
+            raise FlairError('sigmake: Unknown Error')
 
         if is_compress:
             zipsig = os.path.join(flair_dir, 'zipsig')
@@ -119,10 +124,11 @@ class Flair():
         return True
 
     def __extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a
+        if os.path.exists(out_name):
+            raise FileExistsError
+        
         with TemporaryDirectory() as temp:
             self.__extract_deb(deb_name, temp)
-            if os.path.exists(a_name):
-                raise FileExistsError
             usr = os.path.join(temp, 'usr')
             lib_name = ''
             for deb_dir in os.listdir(usr):
@@ -130,7 +136,7 @@ class Flair():
                     lib_name = deb_dir
                     break
             if not lib_name:
-                raise 'deb: Package Error'
+                raise FlairError('deb: Package Error')
             
             lib = os.path.join(usr, lib_name)
             a = os.path.join(lib, a_name)
@@ -141,7 +147,7 @@ class Flair():
                         self.logger.warning('warning: multi platforms found')
                     a = os.path.join(lib, platforms[0], a_name)
                 else:
-                    raise 'deb: Platform not found'
+                    raise FlairError('deb: Platform not found')
             os.rename(a, out_name)
         return True
 
@@ -150,9 +156,11 @@ class Flair():
             a = os.path.join(temp, a_name)
             if not sig_name:
                 sig_name = '{}.sig'.format(os.path.splitext(deb_name)[0])
-            if os.path.exists(a_name):
+            if os.path.exists(sig_name):
                 raise FileExistsError
             
             self.__extract_a(deb_name, a_name, a)
-            self.make_sig(a, sig_name, sig_desc=sig_desc)  
-        
+            try:
+                self.make_sig(a, sig_name, sig_desc=sig_desc)  
+            finally:
+                os.remove(a)
