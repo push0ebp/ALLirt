@@ -159,7 +159,7 @@ class Flair():
             a_lib_path = a.replace(temp, '.')
         return a_lib_path
 
-    def deb_to_sig(self, deb_name, a_name, sig_name='', sig_desc=''):
+    def deb_to_sig(self, deb_name, a_name, sig_name='', sig_desc='', is_compress=True):
         with TemporaryDirectory() as temp:
             a = os.path.join(temp, a_name)
             if not sig_name:
@@ -168,7 +168,7 @@ class Flair():
                 raise FileExistsError
             
             a_lib_path = self.__extract_a(deb_name, a_name, a)
-            self.make_sig(a, sig_name, sig_desc=sig_desc)  
+            self.make_sig(a, sig_name, sig_desc=sig_desc, is_compress=is_compress)  
             
             info = {'a': a_lib_path, 
                     'sig': sig_name}

@@ -33,7 +33,7 @@ class Allirt():
     def download_all(self, out_dir=''):
         return self.download(out_dir)
     
-    def download(self, out_dir='', start=0, end=0):
+    def download(self, out_dir='', start=0, end=0, is_compress=True):
         os_name = self.os_name
         package_name = self.package_name
         self.logger.info('OS : ' + os_name)
@@ -77,7 +77,7 @@ class Allirt():
                                 sig_name = '{}.sig'.format(os.path.splitext(filename)[0])
                                 sig_name = os.path.join(sig_dir_name, sig_name)
                                 deb_path = os.path.join(deb_tmp_path, filename)
-                                info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc)
+                                info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc, is_compress)
                                 self.logger.info('Target library : {}'.format(info['a']))
                                 self.logger.info('Signature has been generated. -> {}'.format(info['sig']))
                             except FileExistsError as e:
