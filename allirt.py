@@ -4,6 +4,7 @@ from datetime import datetime
 import logging
 import traceback
 from tempfile import TemporaryDirectory
+from optparse import OptionParser
 
 
 from flair import Flair, FlairError, FlairNotSupportedError
@@ -14,15 +15,17 @@ class Allirt():
     archive = None
     os_name = ''
     package_name = ''
+    is_compress = True
 
     logger = None
     SKIPS = {'arch':['sparc', 'hppa']}
     
-    def __init__(self, os_name, package_name, flair='flair', log_level=logging.INFO):
+    def __init__(self, os_name, package_name, flair='flair', log_level=logging.INFO, is_compress=True):
         self.flair = Flair(flair)
         self.archive = Launchpad()
         self.os_name = os_name
         self.package_name = package_name
+        self.is_compress = is_compress
         self.logger = logging.getLogger('Allirt')
         self.logger.setLevel(log_level)
         stream_handler = logging.StreamHandler()
@@ -33,7 +36,7 @@ class Allirt():
     def download_all(self, out_dir=''):
         return self.download(out_dir)
     
-    def download(self, out_dir='', start=0, end=0, is_compress=True):
+    def download(self, out_dir='', start=0, end=0):
         os_name = self.os_name
         package_name = self.package_name
         self.logger.info('OS : ' + os_name)
@@ -77,7 +80,7 @@ class Allirt():
                                 sig_name = '{}.sig'.format(os.path.splitext(filename)[0])
                                 sig_name = os.path.join(sig_dir_name, sig_name)
                                 deb_path = os.path.join(deb_tmp_path, filename)
-                                info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc, is_compress)
+                                info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc, self.is_compress)
                                 self.logger.info('Target library : {}'.format(info['a']))
                                 self.logger.info('Signature has been generated. -> {}'.format(info['sig']))
                             except FileExistsError as e:
@@ -100,23 +103,18 @@ class Allirt():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage : python3 alirt.py <out_dir> <start> <end>')
+        print('Usage : python3 alirt.py (-o <out_dir> -s <start> -e <end> -f <flair_dir> -c <compress>)')
         exit()
     
+    usage = "Usage: %prog -o <out_dir>"
+    parser = OptionParser(usage = usage)
+    parser.add_option("-o", "--outdir", dest="out_dir", default='.', action="store", help="set result directory")
+    parser.add_option("-s", "--start", dest="start", default=0, action="store", type='int', help="set start range")
+    parser.add_option("-e", "--end", dest="end", default=0, action="store", type='int', help="set end range")
+    parser.add_option("-f", "--flair", dest="flair", default='flair', action="store", help="set flair util directory")
+    parser.add_option("-c", "--no-compress", dest="is_compress", default=True, action="store_false", help="sig not compress")
     
-    try:
-        out_dir = sys.argv[1]
-    except:
-        out_dir = '.'
-    try:
-        start = int(sys.argv[2])
-    except:
-        start = 0
-
-    try:
-        end = int(sys.argv[3])
-    except:
-        end = 0
-
-    allirt = Allirt('ubuntu', 'libc6-dev')
-    allirt.download(out_dir, start, end)
+    options, args = parser.parse_args()
+    
+    allirt = Allirt('ubuntu', 'libc6-dev', options.flair, is_compress=options.is_compress)
+    allirt.download(options.out_dir, options.start, options.end)

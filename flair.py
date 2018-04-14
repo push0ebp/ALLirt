@@ -14,6 +14,9 @@ class FlairNotSupportedError(Exception):
 class FlairError(Exception):
     pass
 
+class FlairUtilNotFoundError(Exception):
+    pass
+
 class Flair():
     dir_names = {}
     logger = None
@@ -22,8 +25,12 @@ class Flair():
     FILE_NAMES = {'data':'data.tar',
                   'data_gz': 'data.tar.gz'}
     def __init__(self, flair='flair', log_level=logging.WARNING):
+        if not os.path.exists(flair):
+            raise FlairError('flair directory not found.')
+            
         self.dir_names = {'temp' : 'temp', 
                          'flair' : flair}
+
         self.logger = logging.getLogger('Flair')
         self.logger.setLevel(log_level)
         stream_handler = logging.StreamHandler()
@@ -70,6 +77,9 @@ class Flair():
         
         flair_dir = self.dir_names['flair']
         pelf = os.path.join(flair_dir, 'pelf')
+        if not os.path.exists(pelf):
+            raise FlairUtilNotFoundError('pelf util not found. check your flair directory.')
+
         args = [pelf, lib_name, pat]
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
@@ -91,6 +101,9 @@ class Flair():
             raise FlairError('pelf: Error {}'.format(err,))
 
         sigmake = os.path.join(flair_dir, 'sigmake')
+        if not os.path.exists(sigmake):
+            raise FlairUtilNotFoundError('sigmake util not found. check your flair directory.')
+
         if sig_desc:
             args = [sigmake, '-n{}'.format(sig_desc), pat, sig]
         else:
@@ -106,6 +119,9 @@ class Flair():
 
         if is_compress:
             zipsig = os.path.join(flair_dir, 'zipsig')
+            if not os.path.exists(zipsig):
+                raise FlairUtilNotFoundError('zipsig util not found. check your flair directory.')
+
             args = [zipsig, sig]  
             subprocess.call(args, stdout=subprocess.DEVNULL)
         
