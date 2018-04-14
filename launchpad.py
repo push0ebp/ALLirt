@@ -18,6 +18,7 @@ class Launchpad():
     def __init__(self):
         self.session = Session()
 
+    #https://launchpad.net/ubuntu/lucid/i386/libc6-dev
     def get_download_info(self, os_name, os_series, arch, package, package_version):        
         package_info_url = '{}/{}/{}/{}/{}/{}'.format(self.ARCHIVE_HOST, os_name, os_series, arch, package, package_version)    
         res = self.session.get(package_info_url)
@@ -71,6 +72,7 @@ class Launchpad():
             href = link.get('href')
             if href.startswith(path):
                 package_versions.append(href.split('/')[-1])
+        package_versions = list(set(package_versions))
         package_versions.sort()
         return package_versions
     

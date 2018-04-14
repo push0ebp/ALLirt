@@ -22,11 +22,15 @@ class Flair():
                 'processor': 'Unknown processor type',}
     FILE_NAMES = {'data':'data.tar',
                   'data_gz': 'data.tar.gz'}
-    def __init__(self, flair='flair'):
+    def __init__(self, flair='flair', log_level=logging.WARNING):
         self.dir_names = {'temp' : 'temp', 
                          'flair' : flair}
         self.logger = logging.getLogger('Flair')
-        self.logger.setLevel(logging.WARNING)
+        self.logger.setLevel(log_level)
+        stream_handler = logging.StreamHandler()
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        stream_handler.setFormatter(formatter)
+        self.logger.addHandler(stream_handler)
     
     def __clean_exc(self, exc_name):
         with open(exc_name, 'r') as f:
@@ -75,7 +79,7 @@ class Flair():
             self.logger.warning(self.MESSAGES['reloc'])
             reloc_type = err.decode().split('type ')[1].split(' (offset')[0]
             args = [pelf, lib_name, '-r{}:0:0'.format(reloc_type), pat]
-            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process =   
             out, err = process.communicate()
             if self.MESSAGES['reloc'].encode() in err:                
                 raise FlairNotSupportedError('pelf: this architecture is not supported')
@@ -85,15 +89,16 @@ class Flair():
             raise FlairNotSupportedError('pelf: this processor is not supported')
         
         if not os.path.getsize(pat):
-            raise FlairError('pelf: Error {}'.format(err))
+            raise FlairError('pelf: Error {}'.format(err,))
 
         sigmake = os.path.join(flair_dir, 'sigmake')
         args = [sigmake]
         if sig_desc:
             args.append('-n{}'.format(sig_desc))
         args += [pat, sig]
-        exit_code = subprocess.call(args, stderr=subprocess.DEVNULL)
-        
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = process.communicate()
+        exit_code = process.wait()    
         if exit_code != 0 and os.path.exists(exc): #if it has collision
             self.__clean_exc(exc)
             exit_code = subprocess.call(args, stderr=subprocess.DEVNULL)
@@ -140,8 +145,8 @@ class Flair():
             
             lib = os.path.join(usr, lib_name)
             a = os.path.join(lib, a_name)
-            if not os.path.exists(a):
-                platforms = os.listdir(lib)
+            if not os.path.exists(a): #libc.a not exists in ./usr/lib
+                platforms = filter(lambda x: os.path.isdir(x), os.listdir(lib))
                 if len(platforms) >= 1:
                     if len(platforms) == 1:
                         self.logger.warning('warning: multi platforms found')
@@ -149,7 +154,7 @@ class Flair():
                 else:
                     raise FlairError('deb: Platform not found')
             os.rename(a, out_name)
-        return True
+        return a
 
     def deb_to_sig(self, deb_name, a_name, sig_name='', sig_desc=''):
         with TemporaryDirectory() as temp:

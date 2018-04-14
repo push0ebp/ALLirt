@@ -42,7 +42,7 @@ class Allirt():
             for series_idx, series  in enumerate(series_list):
                 series_name, series_version = series
                 print()
-                
+
                 series_dir_name = os.path.join(os_dir_name, '{} ({})'.format(series_version,series_name))
                 not os.path.exists(series_dir_name) and os.mkdir(series_dir_name)
                 self.logger.info('OS Series ({}/{}) : {} ({})'.format(series_idx+1, len(series_list), series_name, series_version) )
@@ -71,8 +71,9 @@ class Allirt():
                                 sig_name = '{}.sig'.format(os.path.splitext(filename)[0])
                                 sig_name = os.path.join(sig_dir_name, sig_name)
                                 deb_path = os.path.join(deb_tmp_path, filename)
-                                self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc)
-                                self.logger.info('Signature has created.')
+                                info = self.flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc)
+                                self.logger.info('Target library : {}'.format(info['a']))
+                                self.logger.info('Signature has created. -> {}'.format(info['a']))
                             except FileExistsError as e:
                                 self.logger.warning('Signature already exists.')
                             except (FlairError, FlairNotSupportedError) as e:
