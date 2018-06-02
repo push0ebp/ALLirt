@@ -60,7 +60,7 @@ class Flair():
 
     def make_sig(self, lib_name, sig_name, sig_desc='', is_compress=True):
         if os.path.exists(sig_name):
-            raise FileExistsError
+            raise FileExistsError(sig_name)
 
         lib, ext = os.path.splitext(lib_name)
         pat = lib + '.pat'
@@ -148,7 +148,7 @@ class Flair():
 
     def _extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a
         if os.path.exists(out_name):
-            raise FileExistsError
+            raise FileExistsError(out_name)
         
         with TemporaryDirectory() as temp:
             self._extract_deb(deb_name, temp)
@@ -181,7 +181,7 @@ class Flair():
             if not sig_name:
                 sig_name = '{}.sig'.format(os.path.splitext(deb_name)[0])
             if os.path.exists(sig_name):
-                raise FileExistsError
+                raise FileExistsError(sig_name)
             
             a_lib_path = self._extract_a(deb_name, a_name, a)
             self.make_sig(a, sig_name, sig_desc=sig_desc, is_compress=is_compress)  
