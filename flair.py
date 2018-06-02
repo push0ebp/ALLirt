@@ -18,27 +18,27 @@ class FlairUtilNotFoundError(Exception):
     pass
 
 class Flair():
-    dir_names = {}
-    logger = None
-    MESSAGES = {'reloc': 'Unknown relocation type',
+    _dir_names = {}
+    _logger = None
+    _MESSAGES = {'reloc': 'Unknown relocation type',
                 'processor': 'Unknown processor type',}
-    FILE_NAMES = {'data':'data.tar',
+    _FILE_NAMES = {'data':'data.tar',
                   'data_gz': 'data.tar.gz'}
     def __init__(self, flair='flair', log_level=logging.WARNING):
         if not os.path.exists(flair):
             raise FlairError('flair directory not found.')
             
-        self.dir_names = {'temp' : 'temp', 
+        self._dir_names = {'temp' : 'temp', 
                          'flair' : flair}
 
-        self.logger = logging.getLogger('Flair')
-        self.logger.setLevel(log_level)
+        self._logger = logging.getLogger('Flair')
+        self._logger.setLevel(log_level)
         stream_handler = logging.StreamHandler()
         formatter = logging.Formatter('[%(levelname)s] %(message)s')
         stream_handler.setFormatter(formatter)
-        self.logger.addHandler(stream_handler)
+        self._logger.addHandler(stream_handler)
     
-    def __clean_exc(self, exc_name):
+    def _clean_exc(self, exc_name):
         with open(exc_name, 'r') as f:
             s = f.read()
             
@@ -75,7 +75,7 @@ class Flair():
         except:
             pass
         
-        flair_dir = self.dir_names['flair']
+        flair_dir = self._dir_names['flair']
         pelf = os.path.join(flair_dir, 'pelf')
         if not os.path.exists(pelf):
             raise FlairUtilNotFoundError('pelf util not found. check your flair directory.')
@@ -83,18 +83,18 @@ class Flair():
         args = [pelf, lib_name, pat]
         process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = process.communicate()
-        if self.MESSAGES['reloc'].encode() in err:
+        if self._MESSAGES['reloc'].encode() in err:
             #thanks to hstocks
-            self.logger.warning(self.MESSAGES['reloc'])
+            self._logger.warning(self._MESSAGES['reloc'])
             reloc_type = err.decode().split('type ')[1].split(' (offset')[0]
             args = [pelf, lib_name, '-r{}:0:0'.format(reloc_type), pat]
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
-            if self.MESSAGES['reloc'].encode() in err:                
+            if self._MESSAGES['reloc'].encode() in err:                
                 raise FlairNotSupportedError('pelf: this architecture is not supported')
         
         
-        if self.MESSAGES['processor'].encode() in err:
+        if self._MESSAGES['processor'].encode() in err:
             raise FlairNotSupportedError('pelf: this processor is not supported')
         
         if not os.path.getsize(pat):
@@ -112,7 +112,7 @@ class Flair():
         out, err = process.communicate()
         exit_code = process.wait()    
         if exit_code != 0 and os.path.exists(exc): #if it has collision
-            self.__clean_exc(exc)
+            self._clean_exc(exc)
             exit_code = subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if exit_code != 0:
             raise FlairError('sigmake: Unknown Error')
@@ -132,26 +132,26 @@ class Flair():
             pass
         return True
 
-    def __extract_deb(self, deb_name, out_name):
+    def _extract_deb(self, deb_name, out_name):
         extract_archive(deb_name, outdir=out_name, verbosity=-1)
         if not os.path.exists(os.path.join(out_name, 'usr')): #data.tar extracted
-            data = os.path.join(out_name, self.FILE_NAMES['data'])
+            data = os.path.join(out_name, self._FILE_NAMES['data'])
             extract_archive(data, outdir=out_name, verbosity=-1)
             if not os.path.exists(data): #deb extract not working
-                args = ['ar','x', deb_name, self.FILE_NAMES['data_gz']]
+                args = ['ar','x', deb_name, self._FILE_NAMES['data_gz']]
                 subprocess.call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                data = os.path.join(out_name, self.FILE_NAMES['data_gz'])
-                if not os.path.exists(self.FILE_NAMES['data_gz']):
+                data = os.path.join(out_name, self._FILE_NAMES['data_gz'])
+                if not os.path.exists(self._FILE_NAMES['data_gz']):
                     raise FlairError('deb: Extract error')
-                os.rename(self.FILE_NAMES['data_gz'], data)
+                os.rename(self._FILE_NAMES['data_gz'], data)
         return True
 
-    def __extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a
+    def _extract_a(self, deb_name, a_name, out_name): #deb -> extract -> copy a
         if os.path.exists(out_name):
             raise FileExistsError
         
         with TemporaryDirectory() as temp:
-            self.__extract_deb(deb_name, temp)
+            self._extract_deb(deb_name, temp)
             usr = os.path.join(temp, 'usr')
             lib_name = ''
             for deb_dir in os.listdir(usr):
@@ -167,7 +167,7 @@ class Flair():
                 platforms = list(filter(lambda x: os.path.isdir(os.path.join(lib, x)), os.listdir(lib)))
                 if len(platforms) >= 1:
                     if len(platforms) != 1:
-                        self.logger.warning('warning: multi platforms found')
+                        self._logger.warning('warning: multi platforms found')
                     a = os.path.join(lib, platforms[0], a_name)
                 else:
                     raise FlairError('deb: Platform not found')
@@ -183,7 +183,7 @@ class Flair():
             if os.path.exists(sig_name):
                 raise FileExistsError
             
-            a_lib_path = self.__extract_a(deb_name, a_name, a)
+            a_lib_path = self._extract_a(deb_name, a_name, a)
             self.make_sig(a, sig_name, sig_desc=sig_desc, is_compress=is_compress)  
             
             info = {'a': a_lib_path, 

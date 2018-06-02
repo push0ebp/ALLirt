@@ -5,10 +5,10 @@ from bs4 import BeautifulSoup
 
 
 class Launchpad():
-    session = None
+    _session = None
     
-    ARCHIVE_HOST = 'https://launchpad.net'
-    ARCHIVE_PAGE = {'suffix':{'os':'+series',
+    _ARCHIVE_HOST = 'https://launchpad.net'
+    _ARCHIVE_PAGE = {'suffix':{'os':'+series',
                               'arch':'+builds'},
                     'selector':{'os':'#maincontent .series strong a',
                                 'arch':'#arch_tag option',
@@ -16,15 +16,14 @@ class Launchpad():
                    }
 
     def __init__(self):
-        self.session = Session()
+        self._session = Session()
 
-    #https://launchpad.net/ubuntu/lucid/i386/libc6-dev
     def get_download_info(self, os_name, os_series, arch, package, package_version):        
-        package_info_url = '{}/{}/{}/{}/{}/{}'.format(self.ARCHIVE_HOST, os_name, os_series, arch, package, package_version)    
-        res = self.session.get(package_info_url)
+        package_info_url = '{}/{}/{}/{}/{}/{}'.format(self._ARCHIVE_HOST, os_name, os_series, arch, package, package_version)    
+        res = self._session.get(package_info_url)
         
         bs = BeautifulSoup(res.content, 'html.parser')
-        bs_download_url = bs.select_one(self.ARCHIVE_PAGE['selector']['file_url'])
+        bs_download_url = bs.select_one(self._ARCHIVE_PAGE['selector']['file_url'])
         
         filename = ''
         download_url = ''
@@ -61,9 +60,9 @@ class Launchpad():
     
     def get_pacakge_versions(self, os_name, os_series, arch, package):
         path = '/{}/{}/{}/{}'.format(os_name, os_series, arch, package)
-        url = '{}{}'.format(self.ARCHIVE_HOST, path)    
+        url = '{}{}'.format(self._ARCHIVE_HOST, path)    
         
-        res = self.session.get(url)
+        res = self._session.get(url)
         bs = BeautifulSoup(res.content, 'html.parser')
         
         links = bs.find_all('a', href=True)
@@ -77,10 +76,10 @@ class Launchpad():
         return package_versions
     
     def get_os_series(self, os_name):
-        url = '{}/{}/{}'.format(self.ARCHIVE_HOST, os_name, self.ARCHIVE_PAGE['suffix']['os'])
-        res = self.session.get(url)
+        url = '{}/{}/{}'.format(self._ARCHIVE_HOST, os_name, self._ARCHIVE_PAGE['suffix']['os'])
+        res = self._session.get(url)
         bs = BeautifulSoup(res.content, 'html.parser')
-        series_list = bs.select(self.ARCHIVE_PAGE['selector']['os'])
+        series_list = bs.select(self._ARCHIVE_PAGE['selector']['os'])
         
         result_series_list = []
         for series in series_list:
@@ -91,12 +90,12 @@ class Launchpad():
         return result_series_list[::-1]
 
     def get_os_architectures(self, os_name, os_series):
-        url = '{}/{}/{}/{}'.format(self.ARCHIVE_HOST, os_name, os_series, self.ARCHIVE_PAGE['suffix']['arch'])
-        res = self.session.get(url)
+        url = '{}/{}/{}/{}'.format(self._ARCHIVE_HOST, os_name, os_series, self._ARCHIVE_PAGE['suffix']['arch'])
+        res = self._session.get(url)
         bs = BeautifulSoup(res.content, 'html.parser')
         
         archs = []
-        element_archs = bs.select(self.ARCHIVE_PAGE['selector']['arch'])
+        element_archs = bs.select(self._ARCHIVE_PAGE['selector']['arch'])
         for element_arch in element_archs:
             if not element_arch.get('value') == 'all':
                 archs.append(element_arch.get('value'))
