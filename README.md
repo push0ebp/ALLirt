@@ -127,3 +127,5 @@ $ python3 allirt.py -f flair -s 1 -e 2 -o tmp
 *suggests me your idea and issue*
 
 this tool uses `launchpad.net` mirror. I am finding package mirrors.
+
+Thanks to @hstocks - `Unknown relocation type`
