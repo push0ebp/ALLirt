@@ -172,9 +172,8 @@ class Flair():
                     platform = ''
                     for relative_dir, dirs, filenames in os.walk(lib):
                         for filename in filenames:
-                            print(filename, a_name)
                             if filename == a_name:
-                                platform = os.path.join(relative_dir, filename)
+                                platform = relative_dir
                                 break
                     if platform == '':
                         raise FlairError('deb: Platform not found')
