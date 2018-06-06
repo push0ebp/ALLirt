@@ -17,14 +17,16 @@ class Allirt():
     _package_name = ''
     _is_compress = True
 
+    _a_name = ''
     _logger = None
     _SKIPS = {'arch':['sparc', 'hppa']}
     
-    def __init__(self, os_name, package_name, flair='flair', log_level=logging.INFO, is_compress=True):
+    def __init__(self, os_name, package_name, a_name, flair='flair', log_level=logging.INFO, is_compress=True):
         self._flair = Flair(flair)
         self._archive = Launchpad()
         self._os_name = os_name
         self._package_name = package_name
+        self._a_name = a_name
         self._is_compress = is_compress
         self._logger = logging.getLogger('Allirt')
         self._logger.setLevel(log_level)
@@ -80,7 +82,7 @@ class Allirt():
                                 sig_name = '{}.sig'.format(os.path.splitext(filename)[0])
                                 sig_name = os.path.join(sig_dir_name, sig_name)
                                 deb_path = os.path.join(deb_tmp_path, filename)
-                                info = self._flair.deb_to_sig(deb_path, 'libc.a', sig_name, sig_desc, self._is_compress)
+                                info = self._flair.deb_to_sig(deb_path, self._a_name, sig_name, sig_desc, self._is_compress)
                                 self._logger.info('Target library : {}'.format(info['a']))
                                 self._logger.info('Signature has been generated. -> {}'.format(info['sig']))
                             except FileExistsError as e:
@@ -116,5 +118,5 @@ if __name__ == '__main__':
     
     options, args = parser.parse_args()
     
-    allirt = Allirt('ubuntu', 'libc6-dev', options.flair, is_compress=options.is_compress)
+    allirt = Allirt('ubuntu', 'libc6-dev', 'libc.a', options.flair, is_compress=options.is_compress)
     allirt.download(options.out_dir, options.start, options.end)

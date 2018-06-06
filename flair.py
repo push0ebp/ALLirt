@@ -168,7 +168,17 @@ class Flair():
                 if len(platforms) >= 1:
                     if len(platforms) != 1:
                         self._logger.warning('warning: multi platforms found')
-                    a = os.path.join(lib, platforms[0], a_name)
+
+                    platform = ''
+                    for relative_dir, dirs, filenames in os.walk(lib):
+                        for filename in filenames:
+                            print(filename, a_name)
+                            if filename == a_name:
+                                platform = os.path.join(relative_dir, filename)
+                                break
+                    if platform == '':
+                        raise FlairError('deb: Platform not found')
+                    a = os.path.join(lib, platform, a_name)
                 else:
                     raise FlairError('deb: Platform not found')
             os.rename(a, out_name)
