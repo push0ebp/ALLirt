@@ -71,17 +71,22 @@ class Allirt():
                         print()
                         self._logger.info('Package Version ({}/{}) : {}'.format(package_version_idx+1, len(package_versions), package_version))
                         self._logger.info('{} {} {} {} {} {}'.format(os_name, series_version, package_name, arch, package_version, datetime.now()))
-                        info = self._archive.download_package(os_name, series_name, arch, package_name, package_version, deb_tmp_path)
-                        size = info['size']
-                        filename = info['filename']
-                        if info['size']:
-                            self._logger.info('Download Completed : {} ({} bytes)'.format(info['url'], size))
-                            sig_desc = '{} {} {} ({}/{})'.format( os_name, series_version, package_name.replace('-dev',''), package_version, arch )
+                        info = self._archive.get_download_info(os_name, series_name, arch, package_name, package_version)
+                        if info['url']:
                             try:
+                                filename = info['filename']
+                                sig_desc = '{} {} {} ({}/{})'.format( os_name, series_version, package_name.replace('-dev',''), package_version, arch )
                                 sig_dir_name = arch_dir_name
                                 sig_name = '{}.sig'.format(os.path.splitext(filename)[0])
                                 sig_name = os.path.join(sig_dir_name, sig_name)
                                 deb_path = os.path.join(deb_tmp_path, filename)
+                                if os.path.exists(sig_name):
+                                    raise FileExistsError()
+                                info = self._archive.download_package_with_info(info, deb_tmp_path, filename)
+                            
+                                size = info['size']
+                                
+                                self._logger.info('Download Completed : {} ({} bytes)'.format(info['url'], size))
                                 info = self._flair.deb_to_sig(deb_path, self._a_name, sig_name, sig_desc, self._is_compress)
                                 self._logger.info('Target library : {}'.format(info['a']))
                                 self._logger.info('Signature has been generated. -> {}'.format(info['sig']))
@@ -92,8 +97,6 @@ class Allirt():
                             except Exception as e:
                                 self._logger.error(e)
                                 traceback.print_tb(e.__traceback__)
-                            finally:
-                                os.remove(deb_path)
                         else:
                             self._logger.warning('Package deleted')
 
@@ -118,5 +121,6 @@ if __name__ == '__main__':
     
     options, args = parser.parse_args()
     
+#   allirt = Allirt('ubuntu', 'libssl-dev', 'libssl.a', options.flair, is_compress=options.is_compress)
     allirt = Allirt('ubuntu', 'libc6-dev', 'libc.a', options.flair, is_compress=options.is_compress)
     allirt.download(options.out_dir, options.start, options.end)

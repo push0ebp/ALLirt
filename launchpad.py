@@ -36,6 +36,19 @@ class Launchpad():
                 'filename': filename}
         return info
 
+    
+    def download_package_with_info(self, info, out_dir='.', filename=''):
+        if info['url']:
+            if not filename:
+                filename = info['filename']
+            out = os.path.join(out_dir, filename)
+            size = self.download_file(info['url'], out)
+        else:
+            size = 0
+        info['size'] = size
+        return info
+    
+
     def download_package(self, os_name, os_series, arch, package, package_version, out_dir='.', filename=''):
         info = self.get_download_info(os_name, os_series, arch, package, package_version)
         if info['url']:
@@ -49,6 +62,7 @@ class Launchpad():
         return info
     
     
+
     def download_file(self, download_url, filename):
         res = req_get(download_url, stream=True) #using requests because of unknown error
         with open(filename, 'wb') as f:

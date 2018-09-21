@@ -86,8 +86,13 @@ class Flair():
         if self._MESSAGES['reloc'].encode() in err:
             #thanks to hstocks
             self._logger.warning(self._MESSAGES['reloc'])
-            reloc_type = err.decode().split('type ')[1].split(' (offset')[0]
-            args = [pelf, lib_name, '-r{}:0:0'.format(reloc_type), pat]
+            try:
+                reloc_type, offset = re.findall(r'type (\d+).*?=(0x\d+)', err.decode())[0]
+            except IndexError:
+                raise FlairNotSupportedError('pelf: this library is not supported')
+
+            reloc_option = '-r{}:{}:0'.format(reloc_type, offset)
+            args = [pelf, reloc_option, lib_name, pat]
             process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = process.communicate()
             if self._MESSAGES['reloc'].encode() in err:                
